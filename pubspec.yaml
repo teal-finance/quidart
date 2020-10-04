@@ -1,0 +1,13 @@
+name: quidart
+description: A requests library for the Quid json web tokens server
+homepage: https://github.com/synw/quidart
+version: 0.1.0
+
+environment:
+  sdk: ">=2.7.0 <3.0.0"
+
+dependencies:
+  meta: ^1.2.3
+  pedantic: ^1.9.2
+  extra_pedantic: ^1.2.0
+  dio: ^3.0.10
