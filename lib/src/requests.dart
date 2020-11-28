@@ -25,27 +25,87 @@ class QuidRequests {
   final Map<String, String> timeouts;
 
   /// The access token
-  String accesToken;
+  String accessToken;
 
   String _refreshToken;
+
+  /// Get request
+  Future<Map<String, dynamic>> get(String uri) async {
+    await _checkTokens();
+    return _requestWithRetry(
+      uri: uri,
+      method: "get",
+    );
+  }
+
+  /// Post request
+  Future<Map<String, dynamic>> post(
+      String uri, Map<String, dynamic> payload) async {
+    await _checkTokens();
+    return _requestWithRetry(
+      uri: uri,
+      method: "post",
+      payload: payload,
+    );
+  }
+
+  Future<Map<String, dynamic>> _requestWithRetry(
+      {String uri,
+      String method,
+      Map<String, dynamic> payload,
+      int retry = 0}) async {
+    Map<String, dynamic> resp;
+    try {
+      if (method == "get") {
+        final response = await _dio.get<Map<String, dynamic>>(
+          uri,
+          options: Options(
+            headers: <String, dynamic>{"Authorization": "Bearer $accessToken"},
+          ),
+        );
+        resp = response.data;
+      } else {
+        final response = await _dio.post<Map<String, dynamic>>(
+          uri,
+          data: payload,
+          options: Options(
+            headers: <String, dynamic>{"Authorization": "Bearer $accessToken"},
+          ),
+        );
+        resp = response.data;
+      }
+    } on DioError catch (e) {
+      if (e?.response?.statusCode == 401) {
+        if (retry > 2) {
+          throw const QuidException.tooManyRetries();
+        }
+        return _requestWithRetry(
+            uri: uri, method: method, payload: payload, retry: retry + 1);
+      }
+    } catch (e) {
+      rethrow;
+    }
+    return resp;
+  }
 
   /// Get an access token from the server
   Future<void> getAccessToken() async {
     final payload = <String, dynamic>{
-      "namespace": this.namespace,
-      "refresh_token": this._refreshToken,
+      "namespace": namespace,
+      "refresh_token": _refreshToken,
     };
     final uri = serverUri + "/token/access/" + timeouts["accessToken"];
     try {
       final response =
           await _dio.post<Map<String, dynamic>>(uri, data: payload);
       final data = Map<String, String>.from(response.data);
-      this.accesToken = data["token"];
-    } 
-    //on DioError catch (e) {
-    //  rethrow;
-    //} 
-    catch (e) {
+      accessToken = data["token"];
+    } on DioError catch (e) {
+      if (e?.response?.statusCode == 401) {
+        throw const QuidException.unauthorized();
+      }
+      rethrow;
+    } catch (e) {
       rethrow;
     }
   }
@@ -58,7 +118,7 @@ class QuidRequests {
     try {
       final uri = serverUri + "/token/refresh/" + refreshTokenTtl;
       final payload = <String, String>{
-        "namespace": this.namespace,
+        "namespace": namespace,
         "username": username,
         "password": password,
       };
@@ -80,6 +140,23 @@ class QuidRequests {
       }
     } catch (e) {
       rethrow;
+    }
+  }
+
+  Future<void> _checkTokens() async {
+    if (_refreshToken == null) {
+      throw const QuidException.hasToLogin();
+    }
+    if (accessToken == null) {
+      try {
+        await getAccessToken();
+      } on QuidException catch (e) {
+        if (e?.unauthorized == true) {
+          throw const QuidException.hasToLogin();
+        } else {
+          rethrow;
+        }
+      }
     }
   }
 }
