@@ -18,13 +18,17 @@ Future<void> main() async {
   } catch (e) {
     rethrow;
   }
-  print("Got a refresh token");
+
   // get an access token
   try {
     await requests.getAccessToken();
   } catch (e) {
     rethrow;
   }
-  print(requests.accesToken);
-  print("Ok");
+  print("Access token");
+  print(requests.accessToken);
+  print("Making request");
+  const uri = "http://127.0.0.1:5000";
+  final data = await requests.get(uri);
+  print(data);
 }
