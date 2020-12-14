@@ -1,12 +1,18 @@
 import 'package:quidart/quidart.dart';
 import 'package:quidart/src/exceptions.dart';
 
+const quidUri = "http://localhost:8082";
+const serverUri = "http://127.0.0.1:5000";
+
 Future<void> main() async {
-  final requests =
-      QuidRequests(serverUri: "http://localhost:8082", namespace: "demo");
-  // get a a refresh token
+  final requests = QuidRequests(
+    baseUri: serverUri,
+    quidUri: quidUri,
+    namespace: "demo",
+  );
+  // login
   try {
-    await requests.getRefreshToken(
+    await requests.login(
       username: "demouser",
       password: "demouser",
     );
@@ -18,17 +24,9 @@ Future<void> main() async {
   } catch (e) {
     rethrow;
   }
-
-  // get an access token
-  try {
-    await requests.getAccessToken();
-  } catch (e) {
-    rethrow;
-  }
-  print("Access token");
-  print(requests.accessToken);
+  print("Access token ok");
   print("Making request");
-  const uri = "http://127.0.0.1:5000";
-  final data = await requests.get(uri);
+  const uri = serverUri;
+  final data = await requests.get<Map<String, dynamic>>(uri);
   print(data);
 }
