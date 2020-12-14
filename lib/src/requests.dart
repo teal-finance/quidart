@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-//import 'package:emodebug/emodebug.dart';
+import 'package:emodebug/emodebug.dart';
 
 import 'package:meta/meta.dart';
 import "./exceptions.dart";
@@ -18,10 +18,10 @@ class QuidRequests {
         "refreshToken": "24h"
       },
       this.verbose = false}) {
-    /*if (verbose) {
+    if (verbose) {
       _ = EmoDebug(zone: "quidrequests", deactivatePrint: !verbose)
         ..constructor("QuidRequests initialized");
-    }*/
+    }
   }
 
   /// The Quid server uri
@@ -39,7 +39,7 @@ class QuidRequests {
   /// Verbosity
   final bool verbose;
 
-  //EmoDebug _;
+  EmoDebug _;
 
   String _accessToken;
 
@@ -50,7 +50,7 @@ class QuidRequests {
   Future<T> get<T>(String uri) async {
     await _checkTokens();
     final url = baseUri == null ? uri : baseUri + uri;
-    //_.requestGet("Get request $url");
+    _.requestGet("Get request $url");
     final v = await _requestWithRetry<T>(
       uri: url,
       method: "get",
@@ -85,7 +85,7 @@ class QuidRequests {
 
   /// Get an access token from the server
   Future<void> getAccessToken() async {
-    //_.key("Getting access token");
+    _.key("Getting access token");
     final payload = <String, dynamic>{
       "namespace": namespace,
       "refresh_token": refreshToken,
@@ -111,7 +111,7 @@ class QuidRequests {
       {@required String username,
       @required String password,
       String refreshTokenTtl = "24h"}) async {
-    //_.key("Getting refresh token");
+    _.key("Getting refresh token");
     try {
       final uri = quidUri + "/token/refresh/" + refreshTokenTtl;
       final payload = <String, String>{
@@ -147,22 +147,21 @@ class QuidRequests {
       int retry = 0}) async {
     //print("Request $method $uri");
     T resp;
+    final options = Options(
+      headers: <String, dynamic>{"Authorization": "Bearer $_accessToken"},
+    );
     try {
       if (method == "get") {
         final response = await _dio.get<T>(
           uri,
-          options: Options(
-            headers: <String, dynamic>{"Authorization": "Bearer $_accessToken"},
-          ),
+          options: options,
         );
         resp = response.data;
       } else {
         final response = await _dio.post<T>(
           uri,
           data: payload,
-          options: Options(
-            headers: <String, dynamic>{"Authorization": "Bearer $_accessToken"},
-          ),
+          options: options,
         );
         resp = response.data;
       }
@@ -171,7 +170,7 @@ class QuidRequests {
         if (retry > 2) {
           throw const QuidException.tooManyRetries();
         }
-        return _requestWithRetry(
+        return _requestWithRetry<T>(
             uri: uri, method: method, payload: payload, retry: retry + 1);
       }
     } catch (e) {
