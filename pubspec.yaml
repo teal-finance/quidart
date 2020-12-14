@@ -11,3 +11,5 @@ dependencies:
   pedantic: ^1.9.2
   extra_pedantic: ^1.2.0
   dio: ^3.0.10
+  emodebug:
+    git: https://github.com/synw/emodebug.git
